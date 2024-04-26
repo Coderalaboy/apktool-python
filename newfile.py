@@ -4,6 +4,7 @@ import shutil
 from zipfile import ZipFile
 import subprocess
 import logging
+import urllib.request
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -18,9 +19,13 @@ def install_dependencies():
         subprocess.Popen(["sudo", "apt-get", "update"]).wait()
         subprocess.Popen(["sudo", "apt-get", "install", "default-jre", "-y"]).wait()
         subprocess.Popen(["sudo", "apt-get", "install", "aapt", "-y"]).wait()
-        subprocess.Popen(["wget", "https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool", "-O", "/usr/local/bin/apktool"]).wait()
-        subprocess.Popen(["wget", "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.5.0.jar", "-O", "/usr/local/bin/apktool.jar"]).wait()
-        subprocess.Popen(["chmod", "+x", "/usr/local/bin/apktool"]).wait()
+        # Download apktool
+        apktool_url = "https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool"
+        urllib.request.urlretrieve(apktool_url, "/usr/local/bin/apktool")
+        os.chmod("/usr/local/bin/apktool", 0o755)
+        # Download apktool jar
+        apktool_jar_url = "https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.5.0.jar"
+        urllib.request.urlretrieve(apktool_jar_url, "/usr/local/bin/apktool.jar")
         return True
     except subprocess.CalledProcessError as e:
         st.error(f"Error installing dependencies: {e.stderr.decode('utf-8')}")
@@ -180,7 +185,7 @@ def main():
         display_decompilation_message()
         return_code, _, _ = run_subprocess_with_timeout(["apktool", "d", file_path], timeout=300)
         if return_code != 0:
-            handle_error("Error during decompilation", "See above error message for details.")
+        	handle_error("Error during decompilation", "See above error message for details.")
             return
         else:
             display_decompilation_success_message()
