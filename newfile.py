@@ -12,7 +12,12 @@ def install_dependencies():
     os.system("chmod +x /usr/local/bin/apktool")
 
 def decompile_apk(file_path):
-    os.system(f"apktool d {file_path}")
+    try:
+        os.system(f"apktool d {file_path}")
+        return True
+    except Exception as e:
+        st.error(f"Error during decompilation: {str(e)}")
+        return False
 
 def create_zip(directory):
     with ZipFile('decompiled_files.zip', 'w') as zipf:
@@ -40,29 +45,32 @@ def main():
 
         # Use Apktool to decompile the APK file
         st.write("Decompiling the APK file...")
-        decompile_apk("uploaded_apk.apk")
-        st.write("APK file decompiled successfully!")
+        decompilation_success = decompile_apk("uploaded_apk.apk")
+        if decompilation_success:
+            st.write("APK file decompiled successfully!")
+            
+            # Create a zip file of decompiled files
+            st.write("Creating zip file of decompiled files...")
+            if os.path.exists("uploaded_apk"):
+                create_zip("uploaded_apk")
+                st.write("Zip file created successfully!")
 
-        # Create a zip file of decompiled files
-        st.write("Creating zip file of decompiled files...")
-        if os.path.exists("uploaded_apk"):
-            create_zip("uploaded_apk")
-            st.write("Zip file created successfully!")
+                # Offer the zip file for download
+                st.write("Download the decompiled files:")
+                with open("decompiled_files.zip", "rb") as f:
+                    st.download_button(label="Download decompiled_files.zip", data=f, file_name="decompiled_files.zip", mime="application/zip")
 
-            # Offer the zip file for download
-            st.write("Download the decompiled files:")
-            with open("decompiled_files.zip", "rb") as f:
-                st.download_button(label="Download decompiled_files.zip", data=f, file_name="decompiled_files.zip", mime="application/zip")
-                
-            # Delete uploaded APK and decompiled files
-            shutil.rmtree("uploaded_apk")
-            os.remove("uploaded_apk.apk")
-            os.remove("decompiled_files.zip")
+                # Delete uploaded APK and decompiled files
+                shutil.rmtree("uploaded_apk")
+                os.remove("uploaded_apk.apk")
+                os.remove("decompiled_files.zip")
 
-            st.write("Data has been erased.")
+                st.write("Data has been erased.")
 
+            else:
+                st.write("Error: Decompiled directory not found.")
         else:
-            st.write("Error: Decompiled directory not found.")
+            st.write("Error during decompilation.")
 
 if __name__ == "__main__":
     main()
