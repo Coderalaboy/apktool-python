@@ -2,28 +2,22 @@ import streamlit as st
 import os
 import shutil
 from zipfile import ZipFile
-
-def install_dependencies():
-    os.system("sudo apt-get update")
-    os.system("sudo apt-get install default-jre -y")
-    os.system("sudo apt-get install aapt -y")
-    os.system("wget https://raw.githubusercontent.com/iBotPeaches/Apktool/master/scripts/linux/apktool -O /usr/local/bin/apktool")
-    os.system("wget https://bitbucket.org/iBotPeaches/apktool/downloads/apktool_2.5.0.jar -O /usr/local/bin/apktool.jar")
-    os.system("chmod +x /usr/local/bin/apktool")
+import subprocess
 
 def decompile_apk(file_path):
     try:
-        os.system(f"apktool d {file_path}")
-        return True
+        command = f"apktool d {file_path}"
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        output, error = process.communicate()
+
+        if process.returncode != 0:
+            st.error(f"Error during decompilation: {error.decode('utf-8')}")
+            return False
+        else:
+            return True
     except Exception as e:
         st.error(f"Error during decompilation: {str(e)}")
         return False
-
-def create_zip(directory):
-    with ZipFile('decompiled_files.zip', 'w') as zipf:
-        for root, dirs, files in os.walk(directory):
-            for file in files:
-                zipf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), directory))
 
 def main():
     st.title("APK Reverse Engineering Tool")
@@ -38,21 +32,21 @@ def main():
 
         st.write("APK file uploaded successfully!")
 
-        # Install dependencies
-        st.write("Installing dependencies...")
-        install_dependencies()
-        st.write("Dependencies installed successfully!")
-
         # Use Apktool to decompile the APK file
         st.write("Decompiling the APK file...")
         decompilation_success = decompile_apk("uploaded_apk.apk")
         if decompilation_success:
             st.write("APK file decompiled successfully!")
-            
-            # Create a zip file of decompiled files
-            st.write("Creating zip file of decompiled files...")
-            if os.path.exists("uploaded_apk"):
-                create_zip("uploaded_apk")
+
+            # Check if decompiled directory exists
+            decompiled_directory = "uploaded_apk"
+            if os.path.exists(decompiled_directory):
+                # Create a zip file of decompiled files
+                st.write("Creating zip file of decompiled files...")
+                with ZipFile('decompiled_files.zip', 'w') as zipf:
+                    for root, dirs, files in os.walk(decompiled_directory):
+                        for file in files:
+                            zipf.write(os.path.join(root, file), os.path.relpath(os.path.join(root, file), decompiled_directory))
                 st.write("Zip file created successfully!")
 
                 # Offer the zip file for download
@@ -61,12 +55,11 @@ def main():
                     st.download_button(label="Download decompiled_files.zip", data=f, file_name="decompiled_files.zip", mime="application/zip")
 
                 # Delete uploaded APK and decompiled files
-                shutil.rmtree("uploaded_apk")
+                shutil.rmtree(decompiled_directory)
                 os.remove("uploaded_apk.apk")
                 os.remove("decompiled_files.zip")
 
                 st.write("Data has been erased.")
-
             else:
                 st.write("Error: Decompiled directory not found.")
         else:
